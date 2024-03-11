@@ -47,8 +47,9 @@ return {
         end
 
         vim.keymap.set("n", "<leader>gpt", function() gpt.openChat() end)
-        vim.keymap.set("v", "<leader>gpe", function() gpt.edit_with_instructions() end)
-        vim.keymap.set("v", "<leader>gpc", function() gpt.complete_code() end)
-        vim.keymap.set("n", "<leader>gpa", function() action_picker(require("telescope.themes").get_dropdown({})) end)
+        vim.keymap.set("n", "<leader>gpc", function() gpt.complete_code() end)
+        vim.keymap.set({ "n", "v" }, "<leader>gpe", function() gpt.edit_with_instructions() end)
+        vim.keymap.set({ "n", "v" }, "<leader>gpa",
+            function() action_picker(require("telescope.themes").get_dropdown({})) end)
     end,
 }
