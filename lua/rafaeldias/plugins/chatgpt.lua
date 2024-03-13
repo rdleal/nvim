@@ -7,7 +7,12 @@ return {
         "folke/trouble.nvim",
         "nvim-telescope/telescope.nvim"
     },
-    config = function()
+    opts = {
+        langs = {
+            "portuguese",
+        }
+    },
+    config = function(_, options)
         local gpt = require("chatgpt")
 
         local user = vim.fn.expand("$USER")
@@ -21,11 +26,36 @@ return {
             table.insert(gpt_actions, key)
         end
 
+        table.insert(options.langs, gpt_flows_actions["translate"].args["lang"].default)
+
         local pickers = require("telescope.pickers")
         local finders = require("telescope.finders")
         local conf = require("telescope.config").values
         local actions = require("telescope.actions")
         local action_state = require("telescope.actions.state")
+
+        local lang_picker = function(opts, cb)
+            opts = opts or {}
+            cb = cb or function() end
+            pickers.new(opts, {
+                prompt_title = "Translate to",
+                finder = finders.new_table({
+                    results = options.langs,
+                }),
+                sorter = conf.generic_sorter(opts),
+                attach_mappings = function(prompt_bufnr, _)
+                    actions.select_default:replace(function()
+                        actions.close(prompt_bufnr)
+                        local lang = action_state.get_selected_entry()
+                        if not lang then
+                            lang = { action_state.get_current_line() }
+                        end
+                        cb(lang[1])
+                    end)
+                    return true
+                end,
+            }):find()
+        end
 
         local action_picker = function(opts)
             opts = opts or {}
@@ -39,6 +69,13 @@ return {
                     actions.select_default:replace(function()
                         actions.close(prompt_bufnr)
                         local selection = action_state.get_selected_entry()
+                        if not selection then
+                            vim.notify("You need to specify an action", vim.log.levels.WARN)
+                        end
+                        if selection[1] == "translate" then
+                            lang_picker(opts, function(lang) gpt.run_action({ fargs = { selection[1], lang } }) end)
+                            return nil
+                        end
                         gpt.run_action({ fargs = { selection[1] } })
                     end)
                     return true
